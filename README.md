@@ -22,7 +22,8 @@ This which avoids the need to loop through different ![wk](https://latex.codecog
 
 
 ### Plots
-...
+Typical costs results after N=50 steps, lambda = 0 (no chance constraint). <br /> <br />
+![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/old_files_201117/cost.png)
 
 ### Execution time
 ...
