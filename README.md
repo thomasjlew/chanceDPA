@@ -22,6 +22,8 @@ This which avoids the need to loop through different ![wk](https://latex.codecog
 
 
 ### Plots
+Solution using the Dynamic Programming Algorithm, with lambda = 1 (important penalization when hittint an obstacle).<br /> <br />(https://github.com/thomasjlew/chanceDPA/blob/master/imgs/cost%26policy_lambda1.png) <br /> <br />
+![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/imgs/cost%26policy_lambda1.png)
 Typical costs results after N=50 steps, lambda = 0 (no chance constraint). <br /> <br />
 ![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/old_files_201117/cost.png)
 
