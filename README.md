@@ -5,8 +5,7 @@ This program solves a dynamic programming problem with joint probabilistic const
 
 This project implements this paper [1] with a few modifications.  <br />
 
-## Results
-### Path planning problem definition 
+## Path planning problem definition 
 The code was tested on a path planning problem with the following dynamics (see [1]):<br />
 ![x_{k+1}=f_k(xk,uk,wk)=xk+uk+wk](https://latex.codecogs.com/svg.latex?x_%7Bk&plus;1%7D%20%3D%20f_k%28x_k%2Cu_k%2Cw_k%29%20%3D%20x_k%20&plus;%20u_k%20&plus;%20w_k)<br />
 ![norm(u_k), wk_distrib](https://latex.codecogs.com/gif.latex?%5Cleft%20%5C%7C%20u_k%5Cright%20%5C%7C_2%20%5Cleq%20d_k%2C%20w_k%5Csim%20N%280%2C%5Csigma%5E2I%29)<br />
@@ -21,17 +20,21 @@ This which avoids the need to loop through different ![wk](https://latex.codecog
 
 
 
-### Plots
-Solution using the Dynamic Programming Algorithm, with lambda = 1 (important penalization when hittint an obstacle).<br /> <br />(https://github.com/thomasjlew/chanceDPA/blob/master/imgs/cost%26policy_lambda1.png) <br /> <br />
-![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/imgs/cost%26policy_lambda1.png)
+## Results
+Dynamic programming algorithm solving the problem for each timestep, with lambda = 1e-4.<br /> <br />
+![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/imgs/chanceDPA.gif) <br /> <br />
+
+Solution using the Dynamic Programming Algorithm, with lambda = 1 (important penalization when hitting an obstacle).<br /> <br /> <br /> <br />
+![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/imgs/cost%26policy_lambda1.png) <br /> <br />
 Typical costs results after N=50 steps, lambda = 0 (no chance constraint). <br /> <br />
-![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/old_files_201117/cost.png)
+![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/old_files_201117/cost.png) <br /> <br />
 
 ### Execution time
-...
+The execution of the Dynamic programming Algorithm without evaluating the risk for the given policy currently takes approx. 3.8 sec (for N=50 steps on 100x100 states, with 81 inputs + noise, tested on a Intel Core i5-4210U CPU @ 1.70GHz, 4GB of RAM).
 
 ## Further work
 - The ongoing work aims at improving the performance of the dynamic programming algorithm to allow for more iterations.
+- Implementing the rest of the paper (to minimize the risk) is ongoing.
 
 ## References
 - [1] M. Ono, M. Pavone, Y. Kuwata and J. Balaram, "Chance-constrained dynamic programming with application to risk-aware robotic space exploration", Autonomous Robots, 2015.
