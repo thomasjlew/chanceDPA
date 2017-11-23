@@ -1,7 +1,10 @@
 # chanceDPA
-
 ## About this project
-Dynamic Programming Algorithm (DPA) to solve a problem with joint probabilistic constraints. It can be used to solve a path planning problem where the chance of hitting an obstacle needs to be kept below a threshold. This project implements this paper [1] and can be directly used to efficiently solve problems with a large state-action-noise space.  <br />
+Dynamic Programming Algorithm (DPA) to solve a problem with joint probabilistic constraints. It can be used to solve a path planning problem where the chance of hitting an obstacle needs to be kept below a threshold. This project implements this paper [1] and can be directly used to efficiently solve problems with a large state-action-noise space.  <br /><br />
+The following animation shows the result, step by step, of the DPA on a path planning problem.
+<p align="center">
+  <img src="https://github.com/thomasjlew/chanceDPA/blob/master/imgs/chanceDPA.gif" width="60%"/>
+</p>
 
 ## Path planning problem definition 
 As in [1], the code solves a path planning problem with the following dynamics:<br />
@@ -9,9 +12,7 @@ As in [1], the code solves a path planning problem with the following dynamics:<
 ![norm(u_k), wk_distrib](https://latex.codecogs.com/svg.latex?%5Cleft%20%5C%7C%20u_k%20%5Cright%20%5C%7C_2%5Cleqslant%20d_k%2C%20%5C%20%5C%20w_k%5Csim%20N%280%2C%5Csigma%5E2I%29)<br />
 As shown in the paper [1], this model is general enough to solve a Mars entry, descent and landing problem.
 Note that for the path planning problem considered here, ![xk](https://latex.codecogs.com/gif.latex?x_k) consists of 100x100 states, ![uk](https://latex.codecogs.com/gif.latex?u_k) can take up to 81 different values using our discretized grid and the noise distribution increases the computations required to apply the DPA, requiring an efficient solution to the problem.<br /> <br />
-Below is the map used for the simulation:<br />
 
-![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/imgs/map.png)  <br /> <br />
 As in [1], we use ![sigma167](https://latex.codecogs.com/svg.latex?%5Csigma%3D1.67). Therefore, to minimize the complexity of the problem, we approximate ![wk](https://latex.codecogs.com/svg.latex?w_k) to discretized values, with ![abs(wk)<5](https://latex.codecogs.com/svg.latex?%7Cw_k%7C%3C5).  <br /> <br />
 The cost-to-go is defined in this way:  <br />
 
@@ -32,13 +33,20 @@ This avoids the need to use a stochastic approach by applying different ![wk](ht
 
 
 ## Results
-Dynamic programming algorithm solving the problem for each timestep, with ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda) = 1e-4.<br /> <br />
-![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/imgs/chanceDPA.gif) <br /> <br />
+These paths were obtained by using the Dynamic Programming Algorithm (DPA) algorithm while respecting the probability constraint of hitting an obstacle. Note that different paths are obtained depending on the cost penalization by ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda), with higher values leading to less risk-prone policies. Hence, an extreme ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda) value of 0 yields to the fastest path between the start and the end points, as shown in blue on the plot.
+<p align="center">
+  <img src="https://github.com/thomasjlew/chanceDPA/blob/master/imgs/paths_results.png" width="70%"/>
+</p>
 
-Solution using the Dynamic Programming Algorithm, with ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda) = 1 (important penalization when hitting an obstacle).<br /> <br /> <br /> <br />
-![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/imgs/cost%26policy_lambda1.png) <br /> <br />
-Typical costs results after N=50 steps, lambda = 0 (no chance constraint). <br /> <br />
-![alt text](https://github.com/thomasjlew/chanceDPA/blob/master/old_files_201117/cost.png) <br /> <br />
+The next animation shows the different costs obtained for each timestep using the DPA, with ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda) = 1e-4. One can see that policies obviously depend on the timestep, as there would be no benefit in risking to hit an obstacle when the goal state is not reachable anymore, for instance for important timesteps (K>30) on states far from the goal. Also, higher cost values ("hills" on the plot) show the presence of obstacles and lead to policies reducing the probability of staying on the obstacle.
+<p align="center">
+  <img src="https://github.com/thomasjlew/chanceDPA/blob/master/imgs/chanceDPA.gif" width="70%"/>
+</p><br />
+
+When removing the obstacle constraint (![lambda](https://latex.codecogs.com/svg.latex?%5Clambda) = 0), the optimal policy will not avoid obstacles as it occurs no additionnal cost. Typical costs results after N=50 steps, are shown on the following plot below
+<p align="center">
+  <img src="https://github.com/thomasjlew/chanceDPA/blob/master/old_files_201117/cost.png" width="70%"/>
+</p>
 
 ### Execution time
 The execution of the Dynamic programming Algorithm without evaluating the risk for the given policy currently takes approx. 3.8 sec (for N=50 steps on 100x100 states, with 81 inputs + noise, tested on a Intel Core i5-4210U CPU @ 1.70GHz, 4GB of RAM).
@@ -46,12 +54,10 @@ The execution of the Dynamic programming Algorithm without evaluating the risk f
 ## How to run it, easy!
 The code was tested in Matlab R2016b and shouldn't require any Matlab toolbox.<br />
 To run it, simply download the \src folder and run the "riskDPA_main.m" script.<br />
-To set a different probability constraint on obstacle collision, simply change the parameter delta (0.01 corresponds to 1% of chance of hitting an obstacle using an optimal policy).
+To set a different probability constraint on obstacle collision, simply change the parameter delta (0.01 would correspond to 1% of chance of hitting an obstacle using an optimal policy).
 
 ## Further work
-- DONE The ongoing work aims at improving the performance of the dynamic programming algorithm to allow for more iterations.
-- DONE Implementing the rest of the paper (to minimize the risk) is ongoing.
-- TODO Implementing Brent's method for efficient interval computation for lambdas. Currently uses average returning non optimal but compliant result (for this path planning problem).
+-  Implementing Brent's method for efficient interval computation for lambdas. The convergence rate is currently not optimal, although it  (for this path planning problem).
 ## References
 - [1] M. Ono, M. Pavone, Y. Kuwata and J. Balaram, "Chance-constrained dynamic programming with application to risk-aware robotic space exploration", Autonomous Robots, 2015.
 - [2] D.P. Bertsekas, "Dynamic Programming and Optimal Control", Vol. I, 3rd edition, 2005, 558 pages.
