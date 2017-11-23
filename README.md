@@ -43,6 +43,11 @@ Typical costs results after N=50 steps, lambda = 0 (no chance constraint). <br /
 ### Execution time
 The execution of the Dynamic programming Algorithm without evaluating the risk for the given policy currently takes approx. 3.8 sec (for N=50 steps on 100x100 states, with 81 inputs + noise, tested on a Intel Core i5-4210U CPU @ 1.70GHz, 4GB of RAM).
 
+## How to run it, easy!
+The code was tested in Matlab R2016b and shouldn't require any Matlab toolbox.<br />
+To run it, simply download the \src folder and run the "riskDPA_main.m" script.<br />
+To set a different probability constraint on obstacle collision, simply change the parameter delta (0.01 corresponds to 1% of chance of hitting an obstacle using an optimal policy).
+
 ## Further work
 - DONE The ongoing work aims at improving the performance of the dynamic programming algorithm to allow for more iterations.
 - DONE Implementing the rest of the paper (to minimize the risk) is ongoing.
