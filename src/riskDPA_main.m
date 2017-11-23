@@ -1,21 +1,25 @@
-%	RISKDPA_MAIN - ...
+%	RISKDPA_MAIN - Solves a path planning problem with stochastics wk.
+%                  and keeps the probability of hitting an obstacle below
+%                  a threshold "delta".
 % 
-% Syntax:  main
+% Syntax:  riskDPA_main
 %
 % Inputs:
 %    None
 %
 % Outputs:
 %    Cost function for all states
+%    Optimal policy
+%    Final risk at timestep 0 using optimal policy
 %
 % Example: 
-%    main
+%    riskDPA_main
 %
 % Other m-files required:   (optional: generate_kernel.m)
 
 % Subfunctions: none
-% MAT-files required:   w_kernel_... 
-% Dataset required:     None
+% MAT-files required:   w_kernel_1_67_11x11.mat 
+% Dataset required:     None - map automaticly generated
 
 % References:
 %   [1] M. Ono, M. Pavone, Y. Kuwata and J. Balaram, “Chance-constrained 
@@ -25,7 +29,7 @@
 % Author:   Thomas Lew
 % email:    lewt@ethz.ch
 % Website:  https://github.com/thomasjlew/
-% November 2017; Last revision: 20-November-2017
+% November 2017; Last revision: 23-November-2017
 
 %------------- BEGIN CODE --------------
 
@@ -37,13 +41,15 @@ close all;
 disp('------------------------------------------------------------------');
 disp('---------------------- Chance_DPA main script --------------------');
 disp('------------------------------------------------------------------');
-disp('Initializing workspace with some map');
+disp('- Initializing workspace with some map');
 % Debugging booleans
 B_PLOT = true;
 B_SAVE_GIF = false;
 B_PERFORMANCE = false;
-rng(1);
-digits(64);
+B_PLOT_TRAJECTORY = true;
+rng(1);         % Init. seed
+digits(64);     % Increase precision
+risk_str = [];  % For legend plotting
 
 % Create binary map with obstacles
 % Convention:    1 = no obstacle, 0 = obstacle present
@@ -65,26 +71,26 @@ if B_PLOT
     figure(1); imshow(map, 'InitialMagnification', 300); 
     title('Map'); hold on; grid on; axis on;
     xlabel('x'); ylabel('y');
-    scatter(x0(1),x0(2), 'r+', 'LineWidth',2, 'SizeData', 30); 
-    scatter(xG(1),xG(2), 'g+', 'LineWidth',2, 'SizeData', 30);.
+    plot(x0(1),x0(2), 'r+', 'LineWidth',3, 'MarkerSize', 10); 
+    plot(xG(1),xG(2), 'g+', 'LineWidth',3, 'MarkerSize', 10);
     legend('Start', 'End', 'Location', 'NorthEast');
 end
 
 % Define dynamics and cost functions
-global N; N = 50;      % Nb steps for Dynamic Programming, see [1]
-dk = 5;             % Allowable input range, see [1]
-sigma = 1.67;          % Noise variance, see [1]
-w = round(sigma^2 * randn(2,40));
-[wY,wX] = meshgrid(-1:1,-1:1); w = [wX(:),wY(:)]';          
-load('w_kernel_1_67_5x5.mat'); % for weighted average by gaussian
-% load('w_kernel_1_67_11x11.mat'); % for weighted average by gaussian %%%%%
-KERNEL_WIDTH  = size(w_kernel,2);
-KERNEL_HEIGHT = size(w_kernel,1);
-% CHECK DIMENSIONS IF YOU CHANGE SOMETHING HERE !!!
-
-global ALPHA; ALPHA = 1e-5;
+disp('- Defining dynamics, variables and cost functions');
+global N; N = 50;       % Nb steps for Dynamic Programming, see [1]
+dk = 5;                 % Allowable input range, see [1]
 u_space = allowable_inputs_dk(dk);
-% Save gk values in a look-up table for faster processing
+sigma = 1.67;           % Noise variance, see [1]
+% w = round(sigma^2 * randn(2,40));   % For old approach, see "OLD CODE"
+% [wY,wX] = meshgrid(-1:1,-1:1); w = [wX(:),wY(:)]';          
+% load('w_kernel_1_67_5x5.mat');      % for weighted average by gaussian
+% % load('w_kernel_1_67_11x11.mat'); % for weighted average by gaussian 
+% KERNEL_WIDTH  = size(w_kernel,2);
+% KERNEL_HEIGHT = size(w_kernel,1);
+
+% Save cost-to-go gk values in a look-up table for faster processing
+global ALPHA; ALPHA = 1e-5;
 gk_values_for_uk = ALPHA * sqrt(u_space(1,:) .* u_space(1,:) + ...
                                 u_space(2,:) .* u_space(2,:));
 
@@ -95,39 +101,9 @@ global gk; gk = @(xk, uk, alpha) alpha*norm(uk);   % Step cost at stage k
 
 % -------------------------------------------------------------------------
 %%  Solve the problem using Chance-Constrained Dynamic Programming [1]
-e_tol = 0.01; % Try different values ---< -< -<-- -<- -<--< ---------------------------------!!!
-delta = 0.01;
+delta = 0.01;   % Probability constraint to be met using the optimal policy
+e_tol = 1e-5;   % Error tolerance
 
-% -------------------------------------------------------------------------
-% 1-5) Compute J_0^0(x0) (without constraint)
-lambda = 0.0001;
-
-% Initialize costs (OLD LOOP)
-% MAX_J_INIT = 100;
-% J = MAX_J_INIT*ones(size(map));
-% J(xG(2), xG(1)) = Lk(N, xG, [], lambda, map, ALPHA, N, xG, gk, gN, gk_values_for_uk);
-
-% -------------------------------------------------------------------------
-% ----                  DYNAMIC PROGRAMMING ALGORITHM                  ----
-% -------------------------------------------------------------------------
-% K == N
-% ------
-figure(2)
-tic
-% Save Ik values in a look-up table for faster processing
-Ikxlambda_values_for_xk = zeros(size(map));
-for xk=all_xks_in_map'
-    Ikxlambda_values_for_xk(xk(2),xk(1)) = lambda * Ik(xk, map);
-    J(xk(2),xk(1)) = gN(xk', xG) + Ikxlambda_values_for_xk(xk(2),xk(1));
-end
-new_J = J;
-best_mu = zeros([size(map),2]); % Best policy for each state
-% -------------------------------------------------------------------------
-
-
-% -------------------
-% K == [(N-1) ---> 0]
-% -------------------
 % List of states to consider, might be changed for faster convergence
 [Y,X] = meshgrid(1:MAP_HEIGHT, 1:MAP_WIDTH);
 all_xks = [X(:),Y(:)];
@@ -137,8 +113,43 @@ load('w_kernel_1_67_11x11.mat');
 KERNEL_WIDTH = size(w_kernel,2);
 KERNEL_HEIGHT = size(w_kernel,1);
 
+% Save all optimal policies
+best_mus = zeros([size(map),2, N+1]);
+
+% -------------------------------------------------------------------------
+% 1-5) Compute J_0^0(x0) (without constraint)
+lambda = 0.0;
+% lambda = 1e-5;
+
+% -------------------------------------------------------------------------
+% ----                  DYNAMIC PROGRAMMING ALGORITHM                  ----
+% -------------------------------------------------------------------------
+% K == N
+% ------
+% Save Ik values in a look-up table for faster processing
+Ikxlambda_values_for_xk = zeros(size(map));
+% Risk-to-go
+r = zeros(size(map));
+for xk=all_xks_in_map'
+    Ikxlambda_values_for_xk(xk(2),xk(1)) = lambda * Ik(xk, map);
+    r(xk(2),xk(1)) = Ik(xk, map);
+    
+    % Cost-to-go
+    J(xk(2),xk(1)) = gN(xk', xG) + Ikxlambda_values_for_xk(xk(2),xk(1));
+end
+new_J = J;
+best_mu = zeros([size(map),2]); % Best policy for each state
+% best_mu_cur_state = xG.*ones(N+1,2);
+best_mus(:,:,:,N+1) = best_mu;
+% -------------------------------------------------------------------------
+
+
+% -------------------
+% K == [(N-1) ---> 0]
+% -------------------
 for k=N-1:-1:0
-    k
+%     surf(r)
+%     k
     
     % Apply stochastics as a convolution with noise kernel
     J_padded = padarray(J,[(KERNEL_HEIGHT-1)/2,(KERNEL_WIDTH-1)/2], ...
@@ -164,12 +175,35 @@ for k=N-1:-1:0
         best_u_id = best_u_ids(xk(2), xk(1));
         best_mu(xk(2), xk(1), :) = u_space(:,best_u_id);
     end
+     
+    % Risk-to-go   (given best policy for this timestep)
+    r_padded = padarray(r,[(KERNEL_HEIGHT-1)/2,(KERNEL_WIDTH-1)/2], ...
+                        'replicate');
+    r_w = conv2(r_padded, w_kernel, 'valid'); % also removes padded edges
+    r_u_pad = repmat(padarray(r_w,[dk,dk],'replicate'),1,1,length(u_space));
+    for uk_id = 1:length(u_space)
+        uk = u_space(:,uk_id);
+%         uk = [0;0]; %%%%%%%%
+        r_u_pad(:,:,uk_id) = padarray(...
+                padarray(r_w,[dk-uk(2),dk-uk(1)],'pre', 'replicate'), ...
+                             [dk+uk(2),dk+uk(1)],'post','replicate');
+                   
+    end
+    r_u = r_u_pad(dk+1:end-dk,dk+1:end-dk,:); % Remove padded edges
+    for xk=all_xks_in_map'
+        best_u_id = best_u_ids(xk(2), xk(1));
+        r(xk(2),xk(1)) = Ik(xk, map) + r_u(xk(2),xk(1),best_u_id);
+    end
     
     % Treat start separately (additionnal term if not k==0)
     if k ~= 0
         % Add lambda_k*Ik(xk)
         J = J + Ikxlambda_values_for_xk;
     end
+    
+    % Save next state if best policy & no stochastics
+    best_mus(:,:,:,k+1) = best_mu;
+    
     
     %% Plot results
     if B_SAVE_GIF
@@ -214,25 +248,83 @@ for k=N-1:-1:0
         end 
     end
 end
-toc
 % ----              END DYNAMIC PROGRAMMING ALGORITHM                  ----
 % -------------------------------------------------------------------------
 
-% -------------------------------------------------------------------------
-%  Solve some bug: some regions have a policy requiring no movement
-%  which would be a problem to evaluate the risk associated with the policy
-for xk = all_xks'
-    if min(min(best_mu(xk(2), xk(1), :) == [0,0], [], 3))
-        uk = sign(xG'-xk); % Go at least in direction of xG (fast implemen)
-        best_mu(xk(2), xk(1), 1) = uk(1);
-        best_mu(xk(2), xk(1), 2) = uk(2);
+%% Get states reached with optimal policy assuming no stochastics
+xk_s = zeros(N+1,2); xk_s(1,:) = x0;
+for k = 1:N
+    uk = best_mus(xk_s(k,2),xk_s(k,1),:,k);
+    xk_s(k+1,:) = xk_s(k,:) + uk(:)';
+end
+if B_PLOT_TRAJECTORY
+    figure(1);
+    scatter(xk_s(:,1),xk_s(:,2),'LineWidth', 2);
+    title('Optimal policies with collision risk probabilities');
+    risk_str = [risk_str, ...
+            'Opt. path, risk='+string(round(100*r(x0(2),x0(1)),3)) + '%'];
+    legend('Start', 'End', risk_str(1),...
+        'Location', 'NorthEastOutside');
+    drawnow
+end
+
+% (NOT NECESSARY FOR ALGORITHM, ONLY FOR PLOTTING)
+% Compute policy with interesting path for plotting
+lambda=1e-4;
+applyRiskDPA;
+if B_PLOT_TRAJECTORY
+    figure(1);
+    scatter(xk_s(:,1),xk_s(:,2),'LineWidth', 2);
+    risk_str = [risk_str, ...
+            'Opt. path, risk='+string(round(100*r(x0(2),x0(1)),3)) + '%'];
+    legend('Start', 'End', risk_str(1), risk_str(2), ...
+        'Location', 'NorthEastOutside');
+    drawnow
+end
+% (NOT NECESSARY FOR ALGORITHM, ONLY FOR PLOTTING)
+
+%% Main DPA loop to obtain optimal policy 
+% Skip step 2-8 (can be easily implemented ...)
+% (contact me @ https://github.com/thomasjlew/chanceDPA/ if you need it)
+
+lambda_L = 0;
+lambda_U = 1;
+
+% Big while loop: steps 10-21
+iter = 0;
+% while (lambda_U-lambda_L)*(r(x0(2),x0(1))-delta)>e_tol
+% No Brent method yet, so solution is very close to chance constraint but
+% not necessarily lower
+while abs((lambda_U-lambda_L)*(r(x0(2),x0(1))-delta)) > e_tol
+    iter = iter+1
+    cur_eps = (lambda_U-lambda_L)*(r(x0(2),x0(1))-delta)
+    
+    lambda = (lambda_U-lambda_L)/2
+    
+    applyRiskDPA;
+    
+    if (r(x0(2),x0(1))-delta) == 0
+        break
+    elseif (r(x0(2),x0(1))-delta) < 0
+        lambda_U = lambda;
+    else
+        lambda_L = lambda;
     end
 end
-% -------------------------------------------------------------------------
+disp('DONE!');
+% End algorithm: the optimal policy meets the chance constraint.
 
-
-% -------------------------------------------------------------------------
-% Evaluate risk associated with policy
+B_PLOT_TRAJECTORY = true;
+if B_PLOT_TRAJECTORY
+    figure(1);
+    scatter(xk_s(:,1),xk_s(:,2),'LineWidth', 2);
+    risk_str = [risk_str, ...
+            'Opt. path, risk='+string(round(100*r(x0(2),x0(1)),3)) + '%'];
+    legend('Start', 'End', risk_str(1), risk_str(2), risk_str(3), ...
+        'Location', 'NorthEastOutside');
+    drawnow
+end
+        
 
 % %% Plot results
 % if B_PLOT
@@ -270,6 +362,9 @@ end
 %--------------------------------------------------------------------------
 % Returns indicator random variable Ik (see [1])
 % If xk is in the allowable states, return 0. Otherwise, returns 1
+% 
+% 23Nov: To minimize impact in efficiency, called once for each lambda to
+%           initialize a look-up table.
 function Ik_val = Ik(xk, map)
 %    global map;
    
@@ -284,6 +379,7 @@ end
 %--------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
+% 23Nov: UNUSUED FUNCTION SINCE TOO SLOW IN MATLAB TO CALL THIS FUNCTION
 % Returns value of step-wise Lagrangian
 function Lk_val = Lk(k, xk, uk, lambda, map, ALPHA, N, xG, gk, gN, gk_values_for_uk, uk_id)
 %     global ALPHA; %                       60% faster when removing global
@@ -294,7 +390,7 @@ function Lk_val = Lk(k, xk, uk, lambda, map, ALPHA, N, xG, gk, gN, gk_values_for
     
     if k==0
         Lk_val = gk_values_for_uk(uk_id);
-%         Lk_val = ALPHA*(uk(1)*uk(1)+uk(2)+uk(2));%norm(uk);             %%% REMOVEDE THE NORM WHICH TAKES WAY TOO MUCH TIME
+%         Lk_val = ALPHA*(uk(1)*uk(1)+uk(2)+uk(2));%norm(uk);  %norm costly
 %         Lk_val = gk(xk, uk, ALPHA);
         return;
     elseif k == N
@@ -352,7 +448,7 @@ end
 %--------------------------------------------------------------------------
         
 %--------------------------------------------------------------------------
-% Function which returns similara obstacles as in [1]
+% Function which returns similar obstacles as in [1]
 function obstacles = define_paper1_obstacles()
     obstacles = [];
     
@@ -372,7 +468,7 @@ function obstacles = define_paper1_obstacles()
     obstacle.size = [20, 20]; % width, height
     obstacles = [obstacles; obstacle];
     
-    obstacle.pos = [78,85];   % x,y
+    obstacle.pos = [78,80];   % x,y
     obstacle.size = [20, 20]; % width, height
     obstacles = [obstacles; obstacle];
 end
@@ -584,4 +680,7 @@ end
 %     end
 % end
 % % END OLD DPA LOOP
+%--------------------------------------------------------------------------
+
+% END CODE
 %--------------------------------------------------------------------------
