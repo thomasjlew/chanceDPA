@@ -49,7 +49,8 @@ When removing the obstacle constraint (![lambda](https://latex.codecogs.com/svg.
 </p>
 
 ### Execution time
-The execution of the Dynamic programming Algorithm without evaluating the risk for the given policy currently takes approx. 3.8 sec (for N=50 steps on 100x100 states, with 81 inputs + noise, tested on a Intel Core i5-4210U CPU @ 1.70GHz, 4GB of RAM).
+The execution of the Dynamic programming Algorithm without evaluating the risk for the given policy currently takes approx. 3.8 sec (for N=50 steps on 100x100 states, with 81 inputs + noise, tested on a Intel Core i5-4210U CPU @ 1.70GHz, 4GB of RAM).<br /><br />
+The algorithm finds an optimal solution satisfying the chance contraint of 1% in approximately 80 sec, for the error tolerance ![convergence_criteria](https://latex.codecogs.com/svg.latex?%5Cdelta%20%5Clambda%5Ccdot%20%28r%5E%7B%5Clambda%7D_0-%5CDelta%29%3Ce_%7Btol%7D%3D10%5E%7B-5%7D).
 
 ## How to run it, easy!
 The code was tested in Matlab R2016b and shouldn't require any Matlab toolbox.<br />
@@ -57,7 +58,7 @@ To run it, simply download the \src folder and run the "riskDPA_main.m" script.<
 To set a different probability constraint on obstacle collision, simply change the parameter delta (0.01 would correspond to 1% of chance of hitting an obstacle using an optimal policy).
 
 ## Further work
--  Implementing Brent's method for efficient interval computation for lambdas. The convergence rate is currently not optimal, although it  (for this path planning problem).
+-  Implementing Brent's method for efficient interval computation for lambdas. The convergence rate is currently not optimal, although the solution meets the final chance constraint.
 ## References
 - [1] M. Ono, M. Pavone, Y. Kuwata and J. Balaram, "Chance-constrained dynamic programming with application to risk-aware robotic space exploration", Autonomous Robots, 2015.
 - [2] D.P. Bertsekas, "Dynamic Programming and Optimal Control", Vol. I, 3rd edition, 2005, 558 pages.
