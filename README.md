@@ -33,7 +33,7 @@ This avoids the need to use a stochastic approach by applying different ![wk](ht
 
 
 ## Results
-These paths were obtained by using the Dynamic Programming Algorithm (DPA) algorithm while respecting the probability constraint of hitting an obstacle. Note that different paths are obtained depending on the cost penalization by ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda), with higher values leading to less risk-prone policies. Hence, an extreme ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda) value of 0 yields to the fastest path between the start and the end points, as shown in blue on the plot.
+These paths were obtained using the Dynamic Programming Algorithm (DPA) algorithm while respecting the probability constraint of hitting an obstacle. Note that different paths are obtained depending on the cost penalization by ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda), with higher values leading to less risk-prone policies. Hence, an extreme ![lambda](https://latex.codecogs.com/svg.latex?%5Clambda) value of 0 yields to the fastest path between the start and the end points, as shown in blue on the plot.
 <p align="center">
   <img src="https://github.com/thomasjlew/chanceDPA/blob/master/imgs/paths_results.png" width="70%"/>
 </p>
